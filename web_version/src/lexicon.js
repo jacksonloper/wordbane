@@ -57,6 +57,26 @@ export function upperLetters(letters) {
   return letters.map((c) => c.toUpperCase());
 }
 
+// Candidate singular forms for a lowercased plural — enough to catch the
+// common English patterns WordNet's lemma set is missing (qualities, dogs,
+// boxes, wolves, knives, …). Order doesn't matter; the caller just probes.
+function singularCandidates(w) {
+  const out = [];
+  if (w.endsWith('ies') && w.length > 3) out.push(w.slice(0, -3) + 'y');
+  if (w.endsWith('ves') && w.length > 3) {
+    out.push(w.slice(0, -3) + 'f');   // wolves -> wolf
+    out.push(w.slice(0, -3) + 'fe');  // knives -> knife
+  }
+  if (w.endsWith('es') && w.length > 2) {
+    out.push(w.slice(0, -2)); // boxes -> box, dishes -> dish
+    out.push(w.slice(0, -1)); // stones -> stone, notes -> note
+  }
+  if (w.endsWith('s') && !w.endsWith('ss') && w.length > 1) {
+    out.push(w.slice(0, -1)); // dogs -> dog
+  }
+  return out;
+}
+
 // The word dictionary — a Set of real words (membership is all the game needs).
 export class Lexicon {
   // Accepts the slim word list (array) or a legacy {word: ...} object.
@@ -65,7 +85,10 @@ export class Lexicon {
   }
 
   isWord(w) {
-    return this.words.has(w.toLowerCase());
+    const word = w.toLowerCase();
+    if (this.words.has(word)) return true;
+    for (const c of singularCandidates(word)) if (this.words.has(c)) return true;
+    return false;
   }
 
   // Highest-damage fresh word for a set of letters (Hint), ties -> shorter word.
