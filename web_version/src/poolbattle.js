@@ -103,7 +103,7 @@ export class PoolBattle {
     const w = word.trim().toLowerCase();
     const dealt = r.dealt | 0;
     const covered = Lex.coveredLetters(w, lettersStr);
-    this.used.push(w);
+    this.used.push(Lex.wordKey(w)); // store the singular so plurals can't be re-spent
     this.enemy.hp = Math.max(0, this.enemyHp() - dealt);
 
     const res = { ok: true, word: w, dealt, covered, hp_left: this.enemyHp(), damage: 0, won: false, lost: false };

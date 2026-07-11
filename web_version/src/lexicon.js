@@ -58,6 +58,14 @@ export function upperLetters(letters) {
   return letters.map((c) => c.toUpperCase());
 }
 
+// A word's canonical identity for the no-reuse rule: its singular form. So
+// 'quality' and 'qualities' (or 'wolf'/'wolves', 'mouse'/'mice') count as the
+// same word within a run — you can't spend both.
+export function wordKey(w) {
+  const word = w.trim().toLowerCase();
+  return pluralize.singular(word) || word;
+}
+
 // The word dictionary — a Set of real words (membership is all the game needs).
 export class Lexicon {
   // Accepts the slim word list (array) or a legacy {word: ...} object.
@@ -82,7 +90,8 @@ export class Lexicon {
     let best = '';
     let bestDmg = 0;
     for (const w of this.words) {
-      if (usedSet.has(w) || !sharesLetter(w, letters)) continue;
+      // sharesLetter first so we only pay for wordKey on real candidates.
+      if (!sharesLetter(w, letters) || usedSet.has(wordKey(w))) continue;
       const d = overlapDamage(w, letters);
       if (d > bestDmg || (d === bestDmg && best !== '' && w.length < best.length)) {
         bestDmg = d;
@@ -96,7 +105,7 @@ export class Lexicon {
   validate(typed, letters, used) {
     const w = typed.trim().toLowerCase();
     if (w === '') return { ok: false, reason: 'type a word' };
-    if (used.includes(w)) return { ok: false, reason: `'${w}' already used this run` };
+    if (used.includes(wordKey(w))) return { ok: false, reason: `'${w}' already used this run` };
     if (!this.isWord(w)) return { ok: false, reason: `'${w}' isn't in the dictionary` };
     if (!sharesLetter(w, letters)) return { ok: false, reason: `'${w}' uses none of its letters` };
     return { ok: true, reason: '', dealt: overlapDamage(w, letters) };
