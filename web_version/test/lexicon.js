@@ -82,5 +82,31 @@ function fresh() {
   check(b.tryMove('quilt').ok, 'a different word is still allowed');
 }
 
+// --- weapon ban is plural-aware ---------------------------------------------
+
+// Enemy wields 'knife'; the pool covers knife/knives letters (k,n,i,f,e,v,s).
+function armed() {
+  const b = new PoolBattle();
+  b.lexicon = lex;
+  b.begin({ letters: ['e', 'f', 'i', 'k', 'n', 's', 'v'], weapons: ['knife'], max_hp: 999, hp: 999, base_bite: 0 }, 30, 30);
+  return b;
+}
+{
+  const b = armed();
+  const exact = b.tryMove('knife');
+  check(!exact.ok && exact.reason === "'knife' is the enemy's own weapon — use a different word",
+    'exact weapon banned with the plain message');
+}
+{
+  const b = armed();
+  const plural = b.tryMove('knives');
+  check(!plural.ok && plural.reason === "'knives' is just 'knife', the enemy's own weapon — use a different word",
+    'weapon plural banned with the it-is-just message');
+}
+{
+  const b = armed(); // a non-weapon word from the same pool is fine
+  check(b.tryMove('fins').ok, 'a non-weapon word is still allowed');
+}
+
 console.log(`lexicon: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

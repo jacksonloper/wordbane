@@ -84,8 +84,15 @@ export class PoolBattle {
   // Validate a move without applying it (also the live preview).
   check(word) {
     const w = word.trim().toLowerCase();
-    if (this.weapons().includes(w)) {
-      return { ok: false, reason: `'${w}' is the enemy's own weapon — use a different word` };
+    // Ban the enemy's weapon words — and their plurals: 'knives' still echoes
+    // 'knife', so match on the singular identity (wordKey), not the literal.
+    const key = Lex.wordKey(w);
+    const weapon = this.weapons().find((wp) => Lex.wordKey(wp) === key);
+    if (weapon !== undefined) {
+      const reason = weapon === w
+        ? `'${w}' is the enemy's own weapon — use a different word`
+        : `'${w}' is just '${weapon}', the enemy's own weapon — use a different word`;
+      return { ok: false, reason };
     }
     const lettersStr = this.letters().join('');
     const r = this.lexicon.validate(word, lettersStr, this.used);
