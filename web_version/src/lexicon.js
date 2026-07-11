@@ -1,6 +1,7 @@
 // The word dictionary + the letter-rarity scoring. Mirrors godot_version/core/lexicon.gd.
 // Pure functions on data; no UI.
 import { section } from './rules.js';
+import pluralize from './vendor/pluralize.js';
 
 export function letterWeight(ch) {
   const w = section('letter_weights')[ch];
@@ -57,26 +58,6 @@ export function upperLetters(letters) {
   return letters.map((c) => c.toUpperCase());
 }
 
-// Candidate singular forms for a lowercased plural — enough to catch the
-// common English patterns WordNet's lemma set is missing (qualities, dogs,
-// boxes, wolves, knives, …). Order doesn't matter; the caller just probes.
-function singularCandidates(w) {
-  const out = [];
-  if (w.endsWith('ies') && w.length > 3) out.push(w.slice(0, -3) + 'y');
-  if (w.endsWith('ves') && w.length > 3) {
-    out.push(w.slice(0, -3) + 'f');   // wolves -> wolf
-    out.push(w.slice(0, -3) + 'fe');  // knives -> knife
-  }
-  if (w.endsWith('es') && w.length > 2) {
-    out.push(w.slice(0, -2)); // boxes -> box, dishes -> dish
-    out.push(w.slice(0, -1)); // stones -> stone, notes -> note
-  }
-  if (w.endsWith('s') && !w.endsWith('ss') && w.length > 1) {
-    out.push(w.slice(0, -1)); // dogs -> dog
-  }
-  return out;
-}
-
 // The word dictionary — a Set of real words (membership is all the game needs).
 export class Lexicon {
   // Accepts the slim word list (array) or a legacy {word: ...} object.
@@ -84,11 +65,15 @@ export class Lexicon {
     this.words = new Set(Array.isArray(words) ? words : Object.keys(words));
   }
 
+  // WordNet's lemma list only carries base forms, so a typed plural like
+  // 'qualities' or 'wolves' misses. We accept the word if it's in the set, or
+  // if its singular (via the pluralize library — handles irregulars like
+  // mice/geese/children and uncountables like sheep) is.
   isWord(w) {
     const word = w.toLowerCase();
     if (this.words.has(word)) return true;
-    for (const c of singularCandidates(word)) if (this.words.has(c)) return true;
-    return false;
+    const singular = pluralize.singular(word);
+    return singular !== word && this.words.has(singular);
   }
 
   // Highest-damage fresh word for a set of letters (Hint), ties -> shorter word.

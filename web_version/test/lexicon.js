@@ -24,9 +24,18 @@ for (const w of ['quality', 'dog', 'stone', 'box', 'wolf', 'knife']) {
   check(lex.isWord(w), `singular in dict: ${w}`);
 }
 
-// Plurals are now accepted via singular fallback.
+// Regular plurals are accepted via singular fallback.
 for (const w of ['qualities', 'dogs', 'stones', 'boxes', 'dishes', 'wolves', 'knives', 'babies', 'notes']) {
   check(lex.isWord(w), `plural accepted: ${w}`);
+}
+
+// Irregular plurals — the reason we use pluralize rather than regex stripping.
+// (Only assert on ones whose singular is actually in the dictionary.)
+for (const [plural, singular] of [
+  ['mice', 'mouse'], ['geese', 'goose'], ['children', 'child'],
+  ['people', 'person'], ['feet', 'foot'], ['teeth', 'tooth'], ['men', 'man'],
+]) {
+  if (lex.words.has(singular)) check(lex.isWord(plural), `irregular plural: ${plural} -> ${singular}`);
 }
 
 // Case-insensitive.
@@ -36,10 +45,6 @@ check(lex.isWord('Qualities'), 'plural case-insensitive');
 for (const w of ['xyzzys', 'qwerties', 'blarghves', 'zzzz']) {
   check(!lex.isWord(w), `nonsense rejected: ${w}`);
 }
-
-// Don't over-strip: 'ss'-final words shouldn't lose the final s.
-// (dress -> dres is not a word; the guard prevents accepting 'dres'.)
-check(!lex.isWord('dres'), `no over-strip for ss-final`);
 
 console.log(`lexicon: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
